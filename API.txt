@@ -1,0 +1,282 @@
+THIS IS HOW THE BACKEND SHOULD BE TESTED WITH POSTMAN OR frontend
+
+
+1) Users
+api endpoint
+GET /api/users/
+POST /api/users/
+GET /api/users/{id}/
+PATCH /api/users/{id}/
+DELETE /api/users/{id}/
+
+headers (specify what type user can access)
+
+GET: Public (no auth required by current permission logic)
+POST/PATCH/DELETE: admin role only
+Typical headers:
+Content-Type: application/json
+Authorization: Basic ... or session auth (for protected methods)
+payload
+
+{
+  "username": "juan123",
+  "first_name": "Juan",
+  "last_name": "Dela Cruz",
+  "email": "juan@example.com",
+  "role": "resident",
+  "purok": "Purok 1",
+  "phone_number": "09171234567"
+}
+explanation (what is the endpoint for and why is it there)
+Manages platform user accounts and roles for RBAC.
+
+2) Puroks
+api endpoint
+GET /api/puroks/
+POST /api/puroks/
+GET /api/puroks/{id}/
+PATCH /api/puroks/{id}/
+DELETE /api/puroks/{id}/
+
+headers (specify what type user can access)
+
+GET: Public
+POST/PATCH/DELETE: staff, admin, purok_leader
+Content-Type: application/json
+Authorization required for write methods
+payload
+
+{
+  "name": "Purok 1",
+  "zone_code": "Z-01"
+}
+explanation
+Creates and manages purok zones used for organizing and tracking concerns per area.
+
+3) Infrastructure Issues
+api endpoint
+GET /api/infrastructure-issues/
+POST /api/infrastructure-issues/
+GET /api/infrastructure-issues/{id}/
+PATCH /api/infrastructure-issues/{id}/
+DELETE /api/infrastructure-issues/{id}/
+
+headers (specify what type user can access)
+
+GET: Public
+POST/PATCH/DELETE: staff, admin, purok_leader
+For image upload use Content-Type: multipart/form-data
+Authorization required for write methods
+payload
+
+{
+  "reporter": 1,
+  "title": "Large pothole near barangay hall",
+  "description": "Dangerous for motorcycles.",
+  "category": "pothole",
+  "status": "pending",
+  "purok": 1,
+  "latitude": 14.5995,
+  "longitude": 120.9842,
+  "address_text": "Main road near hall",
+  "is_verified": false,
+  "is_public": true,
+  "is_emergency": false,
+  "deadline": "2026-05-20"
+}
+explanation
+Core incident reporting endpoint for infrastructure problems and lifecycle/status tracking.
+
+4) Community Concerns
+api endpoint
+GET /api/community-concerns/
+POST /api/community-concerns/
+GET /api/community-concerns/{id}/
+PATCH /api/community-concerns/{id}/
+DELETE /api/community-concerns/{id}/
+
+headers (specify what type user can access)
+
+GET: Public
+POST/PATCH/DELETE: staff, admin, purok_leader
+Content-Type: application/json or multipart/form-data (if image)
+Authorization required for write methods
+payload
+
+{
+  "reporter": 1,
+  "title": "Late-night noise complaint",
+  "description": "Loud karaoke past midnight.",
+  "category": "noise",
+  "status": "pending",
+  "purok": 2,
+  "is_anonymous": true,
+  "is_verified": false,
+  "is_public": true
+}
+explanation
+Handles non-infrastructure complaints (noise, disturbance, safety, etc.), including anonymous reporting.
+
+5) Upvotes
+api endpoint
+GET /api/upvotes/
+POST /api/upvotes/
+GET /api/upvotes/{id}/
+PATCH /api/upvotes/{id}/
+DELETE /api/upvotes/{id}/
+
+headers (specify what type user can access)
+
+All methods: Authenticated users only (resident, staff, admin, purok_leader)
+Content-Type: application/json
+Authorization required
+payload
+
+{
+  "user": 1,
+  "infrastructure_issue": 10,
+  "community_concern": null
+}
+or
+
+{
+  "user": 1,
+  "infrastructure_issue": null,
+  "community_concern": 7
+}
+explanation
+Lets residents/supporters prioritize issues by voting; helps urgency ranking.
+
+6) Worker Assignments
+api endpoint
+GET /api/assignments/
+POST /api/assignments/
+GET /api/assignments/{id}/
+PATCH /api/assignments/{id}/
+DELETE /api/assignments/{id}/
+
+headers (specify what type user can access)
+
+GET: Public
+POST/PATCH/DELETE: staff, admin, purok_leader
+Content-Type: application/json
+Authorization required for write methods
+payload
+
+{
+  "issue": 10,
+  "assignee": 3,
+  "notes": "Bring asphalt mix and caution signs.",
+  "due_date": "2026-05-15"
+}
+explanation
+Assigns infrastructure tasks to personnel with deadlines and work notes.
+
+7) Comments
+api endpoint
+GET /api/comments/
+POST /api/comments/
+GET /api/comments/{id}/
+PATCH /api/comments/{id}/
+DELETE /api/comments/{id}/
+
+headers (specify what type user can access)
+
+GET: Public
+POST/PATCH/DELETE: Authenticated users
+Content-Type: application/json
+Authorization required for write methods
+payload
+
+{
+  "author": 1,
+  "infrastructure_issue": 10,
+  "community_concern": null,
+  "body": "Update: team already inspected this area."
+}
+explanation
+Enables discussion, clarifications, and progress feedback between residents and officials.
+
+8) Emergency Alerts
+api endpoint
+GET /api/emergency-alerts/
+POST /api/emergency-alerts/
+GET /api/emergency-alerts/{id}/
+PATCH /api/emergency-alerts/{id}/
+DELETE /api/emergency-alerts/{id}/
+
+headers (specify what type user can access)
+
+All methods: Authenticated users
+Content-Type: application/json
+Authorization required
+payload
+
+{
+  "reporter": 1,
+  "title": "Fire incident",
+  "description": "House fire near basketball court.",
+  "latitude": 14.6001,
+  "longitude": 120.9850,
+  "contact_number": "09171234567",
+  "acknowledged": false
+}
+explanation
+Fast reporting channel for urgent incidents requiring immediate barangay attention.
+
+9) Dashboard Summary
+api endpoint
+GET /api/dashboard/summary/
+
+headers (specify what type user can access)
+
+Public
+No auth required
+payload
+None (GET endpoint)
+
+explanation
+Provides transparency counters for public monitoring:
+
+total infrastructure issues
+total concerns
+pending total
+resolved total
+emergency total
+Real-time (WebSocket) for Testing
+A) All issue events
+api endpoint
+WS /ws/issues/
+
+headers (specify what type user can access)
+Currently open unless restricted by deployment middleware; can be used by clients needing live updates.
+
+payload
+Client sends none required after connect.
+Server pushes event payloads like:
+
+{
+  "type": "event",
+  "entity": "infrastructure_issue",
+  "action": "updated",
+  "data": {
+    "id": 12,
+    "status": "in_progress",
+    "purok_id": 3
+  }
+}
+explanation
+Streams live updates so frontend users do not need constant polling.
+
+B) Purok-specific events
+api endpoint
+WS /ws/issues/purok/{purok_id}/
+
+headers (specify what type user can access)
+Same as above.
+
+payload
+Same event format, scoped to specific purok group.
+
+explanation
+Lets purok-focused dashboards receive only local area updates.
