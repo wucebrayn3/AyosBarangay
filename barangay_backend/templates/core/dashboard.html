@@ -1,0 +1,213 @@
+{% extends "core/base.html" %}
+{% block title %}Demo Dashboard{% endblock %}
+{% block content %}
+
+<div class="section grid">
+  <div class="card"><h3>Total Infrastructure Issues</h3><div class="pill">{{ counts.infra }}</div></div>
+  <div class="card"><h3>Total Community Concerns</h3><div class="pill">{{ counts.concerns }}</div></div>
+  <div class="card"><h3>Pending</h3><div class="pill warn">{{ counts.pending }}</div></div>
+  <div class="card"><h3>Resolved</h3><div class="pill ok">{{ counts.resolved }}</div></div>
+  <div class="card"><h3>Emergency Alerts</h3><div class="pill">{{ counts.emergency }}</div></div>
+</div>
+
+<div class="section two-col">
+  <div class="card">
+    <h2>Report Infrastructure Issue</h2>
+    {% if request.user.is_authenticated %}
+      <form method="post" action="{% url 'core:create_infrastructure_issue' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ infra_form.as_p }}
+        <button type="submit">Submit Infrastructure Issue</button>
+      </form>
+    {% else %}
+      <div class="meta">Login required to submit reports.</div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Submit Community Concern</h2>
+    {% if request.user.is_authenticated %}
+      <form method="post" action="{% url 'core:create_community_concern' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ concern_form.as_p }}
+        <button type="submit">Submit Community Concern</button>
+      </form>
+    {% else %}
+      <div class="meta">Login required to submit concerns.</div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="section two-col">
+  <div class="card">
+    <h2>Emergency Reporting</h2>
+    {% if request.user.is_authenticated %}
+      <form method="post" action="{% url 'core:create_emergency_alert' %}">
+        {% csrf_token %}
+        {{ emergency_form.as_p }}
+        <button type="submit">Send Emergency Alert</button>
+      </form>
+    {% else %}
+      <div class="meta">Login required to submit emergency alerts.</div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Worker Assignment</h2>
+    {% if request.user.is_authenticated and can_assign %}
+      <form method="post" action="{% url 'core:create_assignment' %}">
+        {% csrf_token %}
+        {{ assignment_form.as_p }}
+        <button type="submit">Create Assignment</button>
+      </form>
+    {% elif request.user.is_authenticated %}
+      <div class="meta">Only staff/admin/purok leader can assign tasks.</div>
+    {% else %}
+      <div class="meta">Login required to assign tasks.</div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="section two-col">
+  <div class="card">
+    <h2>Infrastructure Issues (Latest 10)</h2>
+    {% for issue in infrastructure_issues %}
+      <div class="card" style="margin-bottom:8px;">
+        <strong>{{ issue.title }}</strong>
+        <div class="meta">Status: {{ issue.status }} | Category: {{ issue.category }} | Purok: {{ issue.purok|default:"N/A" }}</div>
+        <div class="meta">Upvotes: {{ issue.upvote_count }} | Reporter: {{ issue.reporter|default:"Anonymous" }}</div>
+        <p>{{ issue.description }}</p>
+
+        {% if request.user.is_authenticated %}
+          <form method="post" action="{% url 'core:upvote_infrastructure_issue' issue.id %}">
+            {% csrf_token %}
+            <button class="small-btn" type="submit">Toggle Upvote</button>
+          </form>
+          <form method="post" action="{% url 'core:comment_on_infrastructure_issue' issue.id %}">
+            {% csrf_token %}
+            <div class="inline-form">
+              <input type="text" name="body" placeholder="Add comment" required />
+              <button class="small-btn" type="submit">Comment</button>
+            </div>
+          </form>
+        {% endif %}
+
+        <ul>
+          {% for c in issue.comments.all|slice:":3" %}
+            <li>{{ c.author }}: {{ c.body }}</li>
+          {% empty %}
+            <li class="meta">No comments yet.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% empty %}
+      <div class="meta">No infrastructure issues yet.</div>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <h2>Community Concerns (Latest 10)</h2>
+    {% for concern in community_concerns %}
+      <div class="card" style="margin-bottom:8px;">
+        <strong>{{ concern.title }}</strong>
+        <div class="meta">Status: {{ concern.status }} | Category: {{ concern.category }} | Purok: {{ concern.purok|default:"N/A" }}</div>
+        <div class="meta">Upvotes: {{ concern.upvote_count }} | Reporter: {% if concern.is_anonymous %}Anonymous{% else %}{{ concern.reporter|default:"Anonymous" }}{% endif %}</div>
+        <p>{{ concern.description }}</p>
+
+        {% if request.user.is_authenticated %}
+          <form method="post" action="{% url 'core:upvote_community_concern' concern.id %}">
+            {% csrf_token %}
+            <button class="small-btn" type="submit">Toggle Upvote</button>
+          </form>
+          <form method="post" action="{% url 'core:comment_on_community_concern' concern.id %}">
+            {% csrf_token %}
+            <div class="inline-form">
+              <input type="text" name="body" placeholder="Add comment" required />
+              <button class="small-btn" type="submit">Comment</button>
+            </div>
+          </form>
+        {% endif %}
+
+        <ul>
+          {% for c in concern.comments.all|slice:":3" %}
+            <li>{{ c.author }}: {{ c.body }}</li>
+          {% empty %}
+            <li class="meta">No comments yet.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% empty %}
+      <div class="meta">No community concerns yet.</div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="section two-col">
+  <div class="card">
+    <h2>Complaints Per Purok</h2>
+    <ul>
+      {% for p in purok_summary %}
+        <li>{{ p.name }} - Infrastructure: {{ p.infra_total }}, Concerns: {{ p.concern_total }}</li>
+      {% empty %}
+        <li class="meta">No purok records yet.</li>
+      {% endfor %}
+    </ul>
+
+    <h3>Recent Assignments</h3>
+    <ul>
+      {% for a in assignments %}
+        <li>Issue #{{ a.issue_id }} -> {{ a.assignee }} (Due: {{ a.due_date|default:"N/A" }})</li>
+      {% empty %}
+        <li class="meta">No assignments yet.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Recent Emergency Alerts</h2>
+    <ul>
+      {% for e in emergency_alerts %}
+        <li><strong>{{ e.title }}</strong> - {{ e.description }} (Ack: {{ e.acknowledged }})</li>
+      {% empty %}
+        <li class="meta">No emergency alerts yet.</li>
+      {% endfor %}
+    </ul>
+
+    <h3>Real-Time Event Feed</h3>
+    <div id="ws-state" class="meta">Connecting...</div>
+    <ul id="ws-events"></ul>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const events = document.getElementById("ws-events");
+    const state = document.getElementById("ws-state");
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const socket = new WebSocket(`${protocol}://${window.location.host}/ws/issues/`);
+
+    socket.onopen = function () {
+      state.textContent = "Connected to /ws/issues/";
+    };
+
+    socket.onmessage = function (event) {
+      const data = JSON.parse(event.data);
+      const li = document.createElement("li");
+      li.textContent = JSON.stringify(data);
+      events.prepend(li);
+      while (events.children.length > 20) {
+        events.removeChild(events.lastChild);
+      }
+    };
+
+    socket.onclose = function () {
+      state.textContent = "Disconnected";
+    };
+
+    socket.onerror = function () {
+      state.textContent = "Socket error";
+    };
+  })();
+</script>
+
+{% endblock %}

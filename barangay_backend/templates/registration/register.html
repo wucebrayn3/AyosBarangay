@@ -1,0 +1,14 @@
+{% extends "core/base.html" %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<div class="card" style="max-width:520px; margin: 0 auto;">
+  <h2>Register Resident Account</h2>
+  <p class="meta">This creates a resident account for real-time user testing.</p>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Register</button>
+  </form>
+  <div class="meta">Already registered? <a href="{% url 'login' %}">Login here</a>.</div>
+</div>
+{% endblock %}

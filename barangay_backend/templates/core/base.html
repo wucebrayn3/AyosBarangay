@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Barangay Platform Demo{% endblock %}</title>
+  <style>
+    :root {
+      --bg: #f4f7f9;
+      --surface: #ffffff;
+      --text: #1d2b36;
+      --muted: #567;
+      --accent: #0b7285;
+      --border: #d9e1e7;
+      --ok: #2f9e44;
+      --warn: #f08c00;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: linear-gradient(180deg, #eef4f8 0%, #f8fbfd 100%);
+      color: var(--text);
+    }
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+    .topbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+    }
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .section { margin-bottom: 14px; }
+    h1, h2, h3 { margin: 0 0 10px 0; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    h3 { font-size: 15px; }
+    .meta { color: var(--muted); font-size: 13px; }
+    .pill {
+      display: inline-block;
+      font-size: 12px;
+      border-radius: 999px;
+      padding: 2px 8px;
+      border: 1px solid var(--border);
+      background: #f7fafc;
+      margin-right: 4px;
+    }
+    input, select, textarea, button {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin: 4px 0 8px;
+      font: inherit;
+    }
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover { filter: brightness(.95); }
+    .small-btn { width: auto; padding: 6px 10px; }
+    .ok { color: var(--ok); }
+    .warn { color: var(--warn); }
+    .msg { margin-bottom: 8px; padding: 8px; border-radius: 8px; background: #edf7ff; border: 1px solid #d3ecff; }
+    .inline-form { display: flex; gap: 8px; align-items: center; }
+    .inline-form input { margin: 0; }
+    ul { margin: 8px 0; padding-left: 18px; }
+    @media (max-width: 900px) {
+      .two-col { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar card">
+      <div>
+        <h1>Barangay Community Platform Demo</h1>
+        <div class="meta">Template-based testing page for backend features</div>
+      </div>
+      <div>
+        {% if request.user.is_authenticated %}
+          <div class="meta">Logged in as: <strong>{{ request.user.username }}</strong> ({{ request.user.role }})</div>
+          <div class="meta"><a href="{% url 'core:dashboard' %}">Dashboard</a> | <a href="{% url 'core:live_users' %}">Live Users</a></div>
+          <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="small-btn" type="submit">Logout</button></form>
+        {% else %}
+          <a href="{% url 'login' %}">Login</a> | <a href="{% url 'core:register' %}">Register</a>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="msg">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

@@ -1,0 +1,99 @@
+{% extends "core/base.html" %}
+{% block title %}Live Users{% endblock %}
+{% block content %}
+<div class="card section">
+  <h2>Live Users (Admin)</h2>
+  <div class="meta">Keep this page open. Newly registered users should appear instantly.</div>
+  <div id="ws-state" class="meta" style="margin-top:8px;">Connecting to /ws/users/ ...</div>
+</div>
+
+<div class="card">
+  <h3>Users</h3>
+  <ul id="user-list">
+    {% for user in users %}
+      <li id="user-{{ user.id }}">
+        <strong>{{ user.username }}</strong> - {{ user.role }}
+        {% if user.first_name or user.last_name %}
+          ({{ user.first_name }} {{ user.last_name }})
+        {% endif %}
+        {% if user.purok %} | Purok: {{ user.purok }}{% endif %}
+      </li>
+    {% empty %}
+      <li id="no-users">No users yet.</li>
+    {% endfor %}
+  </ul>
+</div>
+
+<script>
+  (function () {
+    const userList = document.getElementById("user-list");
+    const state = document.getElementById("ws-state");
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const ws = new WebSocket(`${protocol}://${window.location.host}/ws/users/`);
+
+    function labelForUser(user) {
+      const namePart = (user.first_name || user.last_name)
+        ? ` (${(user.first_name || "")} ${(user.last_name || "")}`.replace(/\s+\)/, ")")
+        : "";
+      const purokPart = user.purok ? ` | Purok: ${user.purok}` : "";
+      return `${user.username} - ${user.role}${namePart}${purokPart}`;
+    }
+
+    function removeNoUsersPlaceholder() {
+      const empty = document.getElementById("no-users");
+      if (empty) {
+        empty.remove();
+      }
+    }
+
+    function upsertUser(user) {
+      removeNoUsersPlaceholder();
+      let li = document.getElementById(`user-${user.id}`);
+      if (!li) {
+        li = document.createElement("li");
+        li.id = `user-${user.id}`;
+        userList.prepend(li);
+      }
+      li.innerHTML = `<strong>${user.username}</strong> - ${user.role}${(user.first_name || user.last_name) ? ` (${user.first_name || ""} ${user.last_name || ""})` : ""}${user.purok ? ` | Purok: ${user.purok}` : ""}`;
+    }
+
+    function deleteUser(user) {
+      const li = document.getElementById(`user-${user.id}`);
+      if (li) {
+        li.remove();
+      }
+      if (!userList.children.length) {
+        const empty = document.createElement("li");
+        empty.id = "no-users";
+        empty.textContent = "No users yet.";
+        userList.appendChild(empty);
+      }
+    }
+
+    ws.onopen = function () {
+      state.textContent = "Connected. Waiting for live user events...";
+    };
+
+    ws.onmessage = function (event) {
+      const payload = JSON.parse(event.data);
+      if (payload.type !== "event" || payload.entity !== "user") {
+        return;
+      }
+
+      if (payload.action === "created" || payload.action === "updated") {
+        upsertUser(payload.data);
+      } else if (payload.action === "deleted") {
+        deleteUser(payload.data);
+      }
+    };
+
+    ws.onclose = function () {
+      state.textContent = "Disconnected from live updates.";
+    };
+
+    ws.onerror = function () {
+      state.textContent = "WebSocket error.";
+    };
+  })();
+</script>
+{% endblock %}

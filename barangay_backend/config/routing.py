@@ -1,2 +1,4 @@
-from apps.reports.routing import websocket_urlpatterns
+from apps.accounts.routing import websocket_urlpatterns as account_websocket_urlpatterns
+from apps.reports.routing import websocket_urlpatterns as report_websocket_urlpatterns
 
+websocket_urlpatterns = report_websocket_urlpatterns + account_websocket_urlpatterns
