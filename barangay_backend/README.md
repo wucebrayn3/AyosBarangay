@@ -13,6 +13,7 @@
 - Incident verification/public visibility fields.
 - Role-based user model (`resident`, `staff`, `admin`, `purok_leader`).
 - Emergency reporting endpoint.
+- Real-time WebSocket updates for issues, concerns, comments, upvotes, assignments, and emergency alerts.
 
 ## Project Structure
 - `config/` Django settings and routing
@@ -50,6 +51,25 @@
 - `/api/comments/`
 - `/api/emergency-alerts/`
 - `/api/dashboard/summary/`
+
+## Real-Time Endpoints (WebSocket)
+- `/ws/issues/` for all issue-related real-time events.
+- `/ws/issues/purok/<purok_id>/` for purok-scoped real-time events.
+
+### Sample Event Payload
+```json
+{
+  "type": "event",
+  "entity": "infrastructure_issue",
+  "action": "updated",
+  "data": {
+    "id": 12,
+    "status": "in_progress",
+    "purok_id": 3,
+    "updated_at": "2026-05-10T12:40:31.829200+00:00"
+  }
+}
+```
 
 ## Notes
 - Authentication is currently session/basic DRF defaults. You can add JWT next.
