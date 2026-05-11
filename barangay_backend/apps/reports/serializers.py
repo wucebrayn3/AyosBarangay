@@ -27,6 +27,7 @@ class InfrastructureIssueSerializer(serializers.ModelSerializer):
     class Meta:
         model = InfrastructureIssue
         fields = "__all__"
+        read_only_fields = ["reporter"]
 
 
 class CommunityConcernSerializer(serializers.ModelSerializer):
@@ -35,12 +36,14 @@ class CommunityConcernSerializer(serializers.ModelSerializer):
     class Meta:
         model = CommunityConcern
         fields = "__all__"
+        read_only_fields = ["reporter"]
 
 
 class IssueUpvoteSerializer(serializers.ModelSerializer):
     class Meta:
         model = IssueUpvote
         fields = "__all__"
+        read_only_fields = ["user"]
 
 
 class WorkerAssignmentSerializer(serializers.ModelSerializer):
@@ -53,9 +56,11 @@ class IssueCommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = IssueComment
         fields = "__all__"
+        read_only_fields = ["author"]
 
 
 class EmergencyAlertSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmergencyAlert
         fields = "__all__"
+        read_only_fields = ["reporter"]

@@ -1,9 +1,11 @@
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
+from channels.db import database_sync_to_async
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 
 class LiveUsersConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
-        user = self.scope.get("user")
+        user = await self._get_user()
         if not user or not user.is_authenticated:
             await self.close(code=4401)
             return
@@ -21,3 +23,22 @@ class LiveUsersConsumer(AsyncJsonWebsocketConsumer):
 
     async def broadcast_event(self, event):
         await self.send_json(event["payload"])
+
+    @database_sync_to_async
+    def _get_user(self):
+        user = self.scope.get("user")
+        if user and user.is_authenticated:
+            return user
+
+        query_string = self.scope.get("query_string", b"").decode()
+        params = dict(pair.split("=", 1) for pair in query_string.split("&") if "=" in pair)
+        token = params.get("token")
+        if not token:
+            return user
+
+        try:
+            authenticator = JWTAuthentication()
+            validated_token = authenticator.get_validated_token(token)
+            return authenticator.get_user(validated_token)
+        except Exception:
+            return user
