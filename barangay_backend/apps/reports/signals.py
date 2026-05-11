@@ -17,6 +17,7 @@ def _serialize_common(instance):
     payload = {"id": instance.pk}
     candidate_fields = [
         "title",
+        "body",
         "status",
         "category",
         "purok_id",
@@ -37,7 +38,38 @@ def _serialize_common(instance):
         if hasattr(instance, field_name):
             value = getattr(instance, field_name)
             payload[field_name] = value.isoformat() if hasattr(value, "isoformat") and value is not None else value
+
+    author = getattr(instance, "author", None)
+    if author is not None:
+        payload["author_username"] = author.username
+
+    infrastructure_issue = getattr(instance, "infrastructure_issue", None)
+    if infrastructure_issue is not None:
+        payload["target_title"] = infrastructure_issue.title
+        payload["target_purok_id"] = infrastructure_issue.purok_id
+
+    community_concern = getattr(instance, "community_concern", None)
+    if community_concern is not None:
+        payload["target_title"] = community_concern.title
+        payload["target_purok_id"] = community_concern.purok_id
+
     return payload
+
+
+def _get_purok_id(instance):
+    if getattr(instance, "purok_id", None) is not None:
+        return instance.purok_id
+
+    if getattr(instance, "infrastructure_issue_id", None) is not None:
+        return instance.infrastructure_issue.purok_id
+
+    if getattr(instance, "community_concern_id", None) is not None:
+        return instance.community_concern.purok_id
+
+    if getattr(instance, "issue_id", None) is not None:
+        return instance.issue.purok_id
+
+    return None
 
 
 def _broadcast(instance, entity, action):
@@ -60,7 +92,7 @@ def _broadcast(instance, entity, action):
         },
     )
 
-    purok_id = getattr(instance, "purok_id", None)
+    purok_id = _get_purok_id(instance)
     if purok_id is not None:
         async_to_sync(channel_layer.group_send)(
             f"issues_purok_{purok_id}",
@@ -129,4 +161,3 @@ def emergency_alert_saved(sender, instance, created, **kwargs):
 @receiver(post_delete, sender=EmergencyAlert)
 def emergency_alert_deleted(sender, instance, **kwargs):
     _broadcast(instance, "emergency_alert", "deleted")
-

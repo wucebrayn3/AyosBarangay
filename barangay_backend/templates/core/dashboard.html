@@ -92,7 +92,7 @@
           </form>
         {% endif %}
 
-        <ul>
+        <ul id="infra-comments-{{ issue.id }}">
           {% for c in issue.comments.all|slice:":3" %}
             <li>{{ c.author }}: {{ c.body }}</li>
           {% empty %}
@@ -128,7 +128,7 @@
           </form>
         {% endif %}
 
-        <ul>
+        <ul id="concern-comments-{{ concern.id }}">
           {% for c in concern.comments.all|slice:":3" %}
             <li>{{ c.author }}: {{ c.body }}</li>
           {% empty %}
@@ -197,6 +197,21 @@
       events.prepend(li);
       while (events.children.length > 20) {
         events.removeChild(events.lastChild);
+      }
+
+      if (data.type === "event" && data.entity === "issue_comment" && data.action === "created") {
+        const comment = data.data;
+        const listId = comment.community_concern_id
+          ? `concern-comments-${comment.community_concern_id}`
+          : `infra-comments-${comment.infrastructure_issue_id}`;
+        const commentList = document.getElementById(listId);
+
+        if (commentList) {
+          commentList.querySelectorAll(".meta").forEach((emptyItem) => emptyItem.remove());
+          const commentItem = document.createElement("li");
+          commentItem.textContent = `${comment.author_username || "Unknown"}: ${comment.body || ""}`;
+          commentList.prepend(commentItem);
+        }
       }
     };
 
