@@ -1,6 +1,7 @@
 from django.db.models import Count
+from django.http import HttpResponse
 from rest_framework import permissions, response, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 
 from .models import (
     CommunityConcern,
@@ -129,3 +130,18 @@ class DashboardViewSet(viewsets.ViewSet):
             "emergency_total": EmergencyAlert.objects.count(),
         }
         return response.Response(data)
+
+
+@api_view(["GET"])
+@permission_classes([permissions.AllowAny])
+def export_pdf(request):
+    from .pdf_utils import generate_report_pdf
+
+    infra_issues = list(
+        InfrastructureIssue.objects.select_related("purok", "reporter").all().order_by("-created_at")
+    )
+    concerns = list(
+        CommunityConcern.objects.select_related("purok", "reporter").all().order_by("-created_at")
+    )
+    pdf_buf = generate_report_pdf(infra_issues, concerns)
+    return HttpResponse(pdf_buf.getvalue(), content_type="application/pdf")

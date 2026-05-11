@@ -1,93 +1,96 @@
 import React, { useEffect, useState } from "react";
-import { TrendingUp, AlertCircle, CheckCircle, Clock } from "lucide-react";
+import { TrendingUp, AlertCircle, CheckCircle, Clock, PieChart } from "lucide-react";
+import { PieChart as RechartsPie, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import api from "../../services/api";
+
+const COLORS = ["#f97316", "#3b82f6", "#22c55e", "#eab308", "#a855f7", "#ef4444", "#06b6d4"];
 
 const Analytics = () => {
   const [analyticsData, setAnalyticsData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - replace with API call later
   useEffect(() => {
-    // Simulated data from backend
-    const mockData = [
-      {
-        purok: "Purok 1",
-        total: 38,
-        resolved: 22,
-        pending: 6,
-        inProgress: 10,
-        resolutionRate: 58,
-        topCategory: "Flooding",
-        density: "high",
-        color: "bg-orange-500"
-      },
-      {
-        purok: "Purok 2",
-        total: 24,
-        resolved: 18,
-        pending: 2,
-        inProgress: 4,
-        resolutionRate: 75,
-        topCategory: "Streetlight",
-        density: "medium",
-        color: "bg-yellow-400"
-      },
-      {
-        purok: "Purok 3",
-        total: 56,
-        resolved: 30,
-        pending: 12,
-        inProgress: 14,
-        resolutionRate: 54,
-        topCategory: "Pothole",
-        density: "critical",
-        color: "bg-pink-500"
-      },
-      {
-        purok: "Purok 4",
-        total: 19,
-        resolved: 14,
-        pending: 3,
-        inProgress: 2,
-        resolutionRate: 74,
-        topCategory: "Noise",
-        density: "low",
-        color: "bg-emerald-400"
-      },
-      {
-        purok: "Purok 5",
-        total: 47,
-        resolved: 25,
-        pending: 9,
-        inProgress: 13,
-        resolutionRate: 53,
-        topCategory: "Drainage",
-        density: "high",
-        color: "bg-orange-500"
-      },
-      {
-        purok: "Purok 6",
-        total: 28,
-        resolved: 21,
-        pending: 4,
-        inProgress: 3,
-        resolutionRate: 75,
-        topCategory: "Safety",
-        density: "medium",
-        color: "bg-yellow-400"
-      },
-      {
-        purok: "Purok 7",
-        total: 41,
-        resolved: 26,
-        pending: 8,
-        inProgress: 7,
-        resolutionRate: 63,
-        topCategory: "Garbage",
-        density: "high",
-        color: "bg-orange-500"
-      }
-    ];
+    Promise.all([
+      api.get("/dashboard/summary/"),
+      api.get("/puroks/"),
+      api.get("/infrastructure-issues/"),
+      api.get("/community-concerns/"),
+    ])
+      .then(([summaryRes, purokRes, infraRes, concernRes]) => {
+        const infraByPurok = {};
+        const categoryTotals = {};
+        infraRes.data.forEach(i => {
+          const key = i.purok_name || `Purok ${i.purok || '?'}`;
+          if (!infraByPurok[key]) infraByPurok[key] = { total: 0, resolved: 0, pending: 0, inProgress: 0, categories: {} };
+          infraByPurok[key].total++;
+          if (i.status === "resolved") infraByPurok[key].resolved++;
+          else if (i.status === "pending") infraByPurok[key].pending++;
+          else if (i.status === "in_progress") infraByPurok[key].inProgress++;
+          infraByPurok[key].categories[i.category] = (infraByPurok[key].categories[i.category] || 0) + 1;
+          categoryTotals[i.category] = (categoryTotals[i.category] || 0) + 1;
+        });
+        concernRes.data.forEach(i => {
+          const key = i.purok_name || `Purok ${i.purok || '?'}`;
+          if (!infraByPurok[key]) infraByPurok[key] = { total: 0, resolved: 0, pending: 0, inProgress: 0, categories: {} };
+          infraByPurok[key].total++;
+          if (i.status === "resolved") infraByPurok[key].resolved++;
+          else if (i.status === "pending") infraByPurok[key].pending++;
+          else if (i.status === "in_progress") infraByPurok[key].inProgress++;
+          infraByPurok[key].categories[i.category] = (infraByPurok[key].categories[i.category] || 0) + 1;
+          categoryTotals[i.category] = (categoryTotals[i.category] || 0) + 1;
+        });
 
-    setAnalyticsData(mockData);
+        const purokNames = purokRes.data.length
+          ? purokRes.data.map(p => p.name)
+          : Object.keys(infraByPurok).length
+            ? Object.keys(infraByPurok)
+            : ["Purok 1", "Purok 2", "Purok 3", "Purok 4", "Purok 5", "Purok 6", "Purok 7"];
+
+        const densityColors = { 0: "bg-emerald-400", 1: "bg-yellow-400", 2: "bg-orange-500", 3: "bg-pink-500" };
+        const densityLevels = ["low", "medium", "high", "critical"];
+
+        const data = purokNames.map((name) => {
+          const d = infraByPurok[name] || { total: 0, resolved: 0, pending: 0, inProgress: 0, categories: {} };
+          const topCat = Object.entries(d.categories).sort((a, b) => b[1] - a[1])[0];
+          const maxTotal = Math.max(...purokNames.map(n => (infraByPurok[n]?.total || 0)), 1);
+          const densityIdx = Math.min(3, Math.floor(((d.total || 0) / maxTotal) * 4));
+          return {
+            purok: name,
+            total: d.total,
+            resolved: d.resolved,
+            pending: d.pending,
+            inProgress: d.inProgress,
+            resolutionRate: d.total > 0 ? Math.round((d.resolved / d.total) * 100) : 0,
+            topCategory: topCat ? topCat[0].replace("_", " ").replace(/\b\w/g, c => c.toUpperCase()) : "N/A",
+            density: densityLevels[densityIdx],
+            color: densityColors[densityIdx],
+          };
+        });
+
+        const statusPieData = [
+          { name: "Resolved", value: data.reduce((s, p) => s + p.resolved, 0) },
+          { name: "Pending", value: data.reduce((s, p) => s + p.pending, 0) },
+          { name: "In Progress", value: data.reduce((s, p) => s + p.inProgress, 0) },
+        ];
+        const categoryPieData = Object.entries(categoryTotals)
+          .sort((a, b) => b[1] - a[1])
+          .map(([name, value]) => ({ name: name.replace("_", " ").replace(/\b\w/g, c => c.toUpperCase()), value }));
+
+        setAnalyticsData(data);
+        setAnalyticsData(prev => {
+          prev.statusPieData = statusPieData;
+          prev.categoryPieData = categoryPieData;
+          prev.totalComplaints = data.reduce((s, p) => s + p.total, 0);
+          prev.totalResolved = data.reduce((s, p) => s + p.resolved, 0);
+          prev.totalPending = data.reduce((s, p) => s + p.pending, 0);
+          prev.avgResolutionRate = data.length > 0
+            ? (data.reduce((s, p) => s + p.resolutionRate, 0) / data.length).toFixed(1)
+            : 0;
+          return [...prev];
+        });
+        setLoading(false);
+      })
+      .catch(err => { console.log(err); setLoading(false); });
   }, []);
 
   const getDensityColor = (density) => {
@@ -106,12 +109,15 @@ const Analytics = () => {
     return "bg-red-500";
   };
 
-  const totalComplaints = analyticsData.reduce((sum, p) => sum + p.total, 0);
-  const totalResolved = analyticsData.reduce((sum, p) => sum + p.resolved, 0);
-  const totalPending = analyticsData.reduce((sum, p) => sum + p.pending, 0);
-  const avgResolutionRate = analyticsData.length > 0 
-    ? (analyticsData.reduce((sum, p) => sum + p.resolutionRate, 0) / analyticsData.length).toFixed(1)
-    : 0;
+  // Extract augmented data
+  const statusPieData = analyticsData.statusPieData || [];
+  const categoryPieData = analyticsData.categoryPieData || [];
+  const totalComplaints = analyticsData.totalComplaints || 0;
+  const totalResolved = analyticsData.totalResolved || 0;
+  const totalPending = analyticsData.totalPending || 0;
+  const avgResolutionRate = analyticsData.avgResolutionRate || 0;
+
+  if (loading) return <p className="text-gray-500">Loading analytics...</p>;
 
   return (
     <div className="space-y-6">
@@ -179,6 +185,49 @@ const Analytics = () => {
         </div>
       </div>
 
+      {/* Pie Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {statusPieData.length > 0 && (
+          <div className="bg-white border rounded-xl p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <PieChart className="w-5 h-5 text-[#1e3a5f]" />
+              <h2 className="text-lg font-bold text-[#1e3a5f]">Status Distribution</h2>
+            </div>
+            <ResponsiveContainer width="100%" height={280}>
+              <RechartsPie>
+                <Pie data={statusPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                  {statusPieData.map((entry, i) => (
+                    <Cell key={entry.name} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </RechartsPie>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {categoryPieData.length > 0 && (
+          <div className="bg-white border rounded-xl p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <PieChart className="w-5 h-5 text-[#1e3a5f]" />
+              <h2 className="text-lg font-bold text-[#1e3a5f]">Category Breakdown</h2>
+            </div>
+            <ResponsiveContainer width="100%" height={280}>
+              <RechartsPie>
+                <Pie data={categoryPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                  {categoryPieData.map((entry, i) => (
+                    <Cell key={entry.name} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </RechartsPie>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+
       {/* Density Heatmap */}
       <div className="bg-white border rounded-xl p-6">
         <h2 className="text-lg font-bold text-[#1e3a5f] mb-4">Density Heatmap</h2>
@@ -217,24 +266,12 @@ const Analytics = () => {
           <table className="w-full">
             <thead className="bg-gray-50 border-b">
               <tr>
-                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-4">
-                  PUROK
-                </th>
-                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-4">
-                  TOTAL
-                </th>
-                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-4">
-                  RESOLVED
-                </th>
-                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-4">
-                  PENDING
-                </th>
-                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-4">
-                  RESOLUTION RATE
-                </th>
-                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-4">
-                  TOP CATEGORY
-                </th>
+                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-4">PUROK</th>
+                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-4">TOTAL</th>
+                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-4">RESOLVED</th>
+                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-4">PENDING</th>
+                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-4">RESOLUTION RATE</th>
+                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-4">TOP CATEGORY</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -243,18 +280,10 @@ const Analytics = () => {
                   key={purok.purok}
                   className={`hover:bg-gray-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}
                 >
-                  <td className="px-6 py-4">
-                    <span className="font-semibold text-[#1e3a5f]">{purok.purok}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="font-bold text-gray-700">{purok.total}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-green-600 font-semibold">{purok.resolved}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-orange-600 font-semibold">{purok.pending}</span>
-                  </td>
+                  <td className="px-6 py-4"><span className="font-semibold text-[#1e3a5f]">{purok.purok}</span></td>
+                  <td className="px-6 py-4"><span className="font-bold text-gray-700">{purok.total}</span></td>
+                  <td className="px-6 py-4"><span className="text-green-600 font-semibold">{purok.resolved}</span></td>
+                  <td className="px-6 py-4"><span className="text-orange-600 font-semibold">{purok.pending}</span></td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="flex-1 max-w-[100px]">
@@ -265,9 +294,7 @@ const Analytics = () => {
                           ></div>
                         </div>
                       </div>
-                      <span className="text-sm font-semibold text-gray-700 w-12">
-                        {purok.resolutionRate}%
-                      </span>
+                      <span className="text-sm font-semibold text-gray-700 w-12">{purok.resolutionRate}%</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">

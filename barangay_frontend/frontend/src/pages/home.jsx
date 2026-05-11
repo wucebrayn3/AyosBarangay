@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   MapPin, TrendingUp, Camera, ArrowRight, 
   Eye, ArrowUp, Users, BarChart3, Shield, 
@@ -6,6 +6,8 @@ import {
   X, Upload
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import api, { labelToApiCategory, infrastructureCategories } from '../services/api';
+import { lucenaBarangays, lucenaStreets, purokList } from '../data/lucenaData';
 
 // --- Report Modal Component ---
 const ReportModal = ({ isOpen, onClose }) => {
@@ -13,16 +15,54 @@ const ReportModal = ({ isOpen, onClose }) => {
     category: '',
     location: '',
     description: '',
-    photo: null
+    photo: null,
+    barangay: '',
+    street: '',
+    purok: '',
   });
+  const [preview, setPreview] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef(null);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleFile = (file) => {
+    if (!file) return;
+    setFormData({ ...formData, photo: file });
+    const reader = new FileReader();
+    reader.onloadend = () => setPreview(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Connect to backend
-    alert('Report submitted successfully!');
-    onClose();
+    setSubmitting(true);
+    try {
+      const category = labelToApiCategory(formData.category);
+      const endpoint = infrastructureCategories.has(category) && category !== 'noise'
+        ? '/infrastructure-issues/'
+        : '/community-concerns/';
+      const combinedLocation = [formData.purok, formData.street, formData.barangay].filter(Boolean).join(", ");
+      const payload = new FormData();
+      payload.append('title', combinedLocation || formData.location);
+      payload.append('description', formData.description);
+      payload.append('category', category);
+      payload.append('status', 'pending');
+      payload.append('address_text', combinedLocation || formData.location);
+      payload.append('is_verified', 'false');
+      payload.append('is_public', 'true');
+      if (endpoint === '/community-concerns/') payload.append('is_anonymous', 'false');
+      if (formData.photo) payload.append('image', formData.photo);
+      await api.post(endpoint, payload);
+      onClose();
+      setFormData({ category: '', location: '', description: '', photo: null, barangay: '', street: '', purok: '' });
+      setPreview(null);
+    } catch (err) {
+      alert(err.response?.status === 401 ? 'Please log in before submitting a report.' : 'Could not submit report.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -78,16 +118,27 @@ const ReportModal = ({ isOpen, onClose }) => {
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Location <span className="text-red-500">*</span>
             </label>
-            <div className="relative">
-              <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                required
-                placeholder="Purok, street, landmark..."
-                value={formData.location}
-                onChange={(e) => setFormData({...formData, location: e.target.value})}
-                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f97316] focus:border-transparent"
-              />
+            <div className="space-y-3">
+              <div className="relative">
+                <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <select required value={formData.barangay} onChange={(e) => setFormData({...formData, barangay: e.target.value})}
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f97316] focus:border-transparent bg-white appearance-none">
+                  <option value="">Select barangay (Lucena City)</option>
+                  {lucenaBarangays.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <select value={formData.purok} onChange={(e) => setFormData({...formData, purok: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f97316] bg-white appearance-none">
+                  <option value="">Purok (optional)</option>
+                  {purokList.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+                <select value={formData.street} onChange={(e) => setFormData({...formData, street: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f97316] bg-white appearance-none">
+                  <option value="">Street (optional)</option>
+                  {lucenaStreets.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
             </div>
           </div>
 
@@ -111,11 +162,41 @@ const ReportModal = ({ isOpen, onClose }) => {
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Upload Photo <span className="text-gray-400 font-normal">(optional)</span>
             </label>
-            <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-[#f97316] transition-colors cursor-pointer">
-              <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
-              <p className="text-xs text-gray-400 mt-1">PNG, JPG up to 5MB</p>
-              <input type="file" className="hidden" accept="image/*" />
+            <div
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragEnter={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
+              onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleFile(e.dataTransfer.files[0]); }}
+              onClick={() => fileInputRef.current?.click()}
+              className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
+                isDragging ? 'border-[#f97316] bg-orange-50' : 'border-gray-300 hover:border-[#f97316]'
+              }`}
+            >
+              {preview ? (
+                <div className="relative inline-block">
+                  <img src={preview} alt="Preview" className="max-h-40 rounded-lg mx-auto" />
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setPreview(null); setFormData({...formData, photo: null}); }}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
+                  <p className="text-xs text-gray-400 mt-1">PNG, JPG up to 5MB</p>
+                </>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept="image/*"
+                onChange={(e) => handleFile(e.target.files[0])}
+              />
             </div>
           </div>
 
@@ -130,9 +211,10 @@ const ReportModal = ({ isOpen, onClose }) => {
             </button>
             <button
               type="submit"
-              className="flex-1 bg-[#f97316] hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition-colors shadow-lg shadow-orange-500/30"
+              disabled={submitting}
+              className="flex-1 bg-[#f97316] hover:bg-orange-600 disabled:bg-gray-400 text-white font-bold py-3 rounded-xl transition-colors shadow-lg shadow-orange-500/30"
             >
-              Submit Report
+              {submitting ? 'Submitting...' : 'Submit Report'}
             </button>
           </div>
         </form>

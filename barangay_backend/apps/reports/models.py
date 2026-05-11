@@ -92,6 +92,7 @@ class WorkerAssignment(TimeStampedModel):
     assignee = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="assigned_tasks")
     notes = models.TextField(blank=True)
     due_date = models.DateField(null=True, blank=True)
+    team = models.CharField(max_length=100, blank=True, default="")
 
 
 class IssueComment(TimeStampedModel):

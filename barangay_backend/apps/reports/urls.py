@@ -10,6 +10,7 @@ from .views import (
     IssueUpvoteViewSet,
     PurokViewSet,
     WorkerAssignmentViewSet,
+    export_pdf,
 )
 
 router = DefaultRouter()
@@ -24,4 +25,5 @@ router.register("dashboard", DashboardViewSet, basename="dashboard")
 
 urlpatterns = [
     path("", include(router.urls)),
+    path("export/pdf/", export_pdf, name="export-pdf"),
 ]

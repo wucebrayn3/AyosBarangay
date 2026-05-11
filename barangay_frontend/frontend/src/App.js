@@ -22,6 +22,7 @@ import Analytics from './pages/admin/Analytics';
 import Feedback from './pages/admin/Feedback';
 import History from './pages/admin/History';
 import Users from './pages/admin/Users';
+import PurokManagement from './pages/admin/PurokManagement';
 import Settings from './pages/admin/Settings';
 
 function App() {
@@ -84,6 +85,7 @@ function App() {
           
           {/* Administration */}
           <Route path="users" element={<Users />} />
+          <Route path="puroks" element={<PurokManagement />} />
           <Route path="settings" element={<Settings />} />
         </Route>
 

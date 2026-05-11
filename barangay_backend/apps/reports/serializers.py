@@ -23,20 +23,40 @@ class PurokSerializer(serializers.ModelSerializer):
 
 class InfrastructureIssueSerializer(serializers.ModelSerializer):
     upvote_count = serializers.IntegerField(read_only=True)
+    purok_name = serializers.SerializerMethodField()
+    reporter_name = serializers.SerializerMethodField()
 
     class Meta:
         model = InfrastructureIssue
         fields = "__all__"
         read_only_fields = ["reporter"]
 
+    def get_purok_name(self, obj):
+        return obj.purok.name if obj.purok else ""
+
+    def get_reporter_name(self, obj):
+        if obj.reporter:
+            return f"{obj.reporter.first_name} {obj.reporter.last_name}".strip() or obj.reporter.username
+        return "Anonymous"
+
 
 class CommunityConcernSerializer(serializers.ModelSerializer):
     upvote_count = serializers.IntegerField(read_only=True)
+    purok_name = serializers.SerializerMethodField()
+    reporter_name = serializers.SerializerMethodField()
 
     class Meta:
         model = CommunityConcern
         fields = "__all__"
         read_only_fields = ["reporter"]
+
+    def get_purok_name(self, obj):
+        return obj.purok.name if obj.purok else ""
+
+    def get_reporter_name(self, obj):
+        if obj.reporter:
+            return f"{obj.reporter.first_name} {obj.reporter.last_name}".strip() or obj.reporter.username
+        return "Anonymous"
 
 
 class IssueUpvoteSerializer(serializers.ModelSerializer):
@@ -53,10 +73,17 @@ class WorkerAssignmentSerializer(serializers.ModelSerializer):
 
 
 class IssueCommentSerializer(serializers.ModelSerializer):
+    author_name = serializers.SerializerMethodField()
+
     class Meta:
         model = IssueComment
         fields = "__all__"
         read_only_fields = ["author"]
+
+    def get_author_name(self, obj):
+        if obj.author:
+            return f"{obj.author.first_name} {obj.author.last_name}".strip() or obj.author.username
+        return "Anonymous"
 
 
 class EmergencyAlertSerializer(serializers.ModelSerializer):

@@ -1,2 +1,21 @@
 Watching for file changes with StatReloader
 HTTP GET /admin/accounts/user/3/change/ 200 [0.52, 127.0.0.1:21937]
+C:\Users\Samuel\Documents\New project\barangay_backend\apps\reports\views.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\Samuel\Documents\New project\barangay_backend\apps\reports\views.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\Samuel\Documents\New project\barangay_backend\apps\reports\urls.py changed, reloading.
+Watching for file changes with StatReloader
+HTTP GET /api/export/pdf/ 200 [3.98, 127.0.0.1:23968]
+C:\Users\Samuel\Documents\New project\barangay_backend\apps\reports\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+HTTP GET /api/dashboard/summary/ 200 [0.10, 127.0.0.1:24546]
+HTTP GET /api/puroks/ 200 [0.04, 127.0.0.1:24547]
+HTTP GET /api/infrastructure-issues/ 200 [0.09, 127.0.0.1:24548]
+HTTP GET /api/community-concerns/ 200 [0.06, 127.0.0.1:24549]
+HTTP GET /api/users/ 200 [0.05, 127.0.0.1:24551]
+HTTP GET /api/export/pdf/ 200 [0.89, 127.0.0.1:24552]
+C:\Users\Samuel\Documents\New project\barangay_backend\apps\reports\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\Samuel\Documents\New project\barangay_backend\apps\reports\models.py changed, reloading.
+Watching for file changes with StatReloader

@@ -1,0 +1,318 @@
+================================================================================
+  AYOSBARANGAY — COMMUNITY ISSUE TRACKING PLATFORM
+  Complete Feature List
+================================================================================
+
+PURPOSE:
+AyosBarangay is a community issue reporting and tracking platform that allows
+residents to report infrastructure problems (potholes, broken streetlights,
+drainage issues, garbage, flooding) and community concerns (noise, disturbance,
+safety) to their barangay. The system enables real-time tracking from report
+submission through verification, assignment, and resolution — all visible to
+the public via an interactive map and live WebSocket updates.
+
+================================================================================
+1. USER AUTHENTICATION & ACCOUNT MANAGEMENT
+================================================================================
+
+  Feature: User Registration
+  Purpose: Allows residents to create an account with username, email, password,
+           purok, and phone number. Auto-assigns "resident" role.
+
+  Feature: JWT Login / Logout
+  Purpose: Secure token-based authentication. Access tokens (30min) + refresh
+           tokens (7 days). Logout blacklists the refresh token.
+
+  Feature: Role-Based Access
+  Purpose: Four roles (resident, staff, admin, purok_leader) control what each
+           user can see and do. Admin/staff redirected to admin dashboard,
+           residents to the reports page.
+
+  Feature: User Profile ("Me" Endpoint)
+  Purpose: Authenticated users can view their own account details.
+
+  Feature: Admin User Management
+  Purpose: Admins can list, create, edit roles, and delete users.
+
+  Feature: Logout Button (Navbar + Admin TopBar)
+  Purpose: Lets any logged-in user sign out from both public and admin
+           interfaces. Clears tokens and redirects to home.
+
+================================================================================
+2. PUBLIC PAGES
+================================================================================
+
+  Feature: Home Page (/)
+  Purpose: Landing page with hero section, platform stats (total reports,
+           resolved, resolution rate), feature highlights, trending issues,
+           and a CTA to submit a report.
+
+  Feature: Community Reports Page (/report)
+  Purpose: Central hub displaying all infrastructure issues and community
+           concerns on an interactive Leaflet map (color-coded by status) plus
+           a sortable/filterable report grid with search, images, and modals.
+
+  Feature: Emergency Page (/emergency)
+  Purpose: Allows users to send emergency alerts (fire, accident, medical,
+           crime) with type, location, description, and contact number.
+           Includes a "Call 911" shortcut.
+
+  Feature: About Page (/about)
+  Purpose: Informational page about the platform's mission, approach, and team.
+
+================================================================================
+3. REPORTING FEATURES
+================================================================================
+
+  Feature: Submit Infrastructure Issue
+  Purpose: Report potholes, broken streetlights, drainage issues, garbage
+           problems, flooding, or other infrastructure concerns with title,
+           description, category, location, and optional photo.
+
+  Feature: Submit Community Concern
+  Purpose: Report noise complaints, disturbances, safety issues, or other
+           community concerns with optional anonymous flag.
+
+  Feature: Photo Upload (Drag-and-Drop)
+  Purpose: Attach an image to any report using click-to-upload or drag-and-drop
+           with live image preview.
+
+  Feature: Automatic Reference Numbers
+  Purpose: Each report gets a unique ref (e.g., INF-0001, CON-0001) for easy
+           tracking and identification.
+
+  Feature: Report Status Workflow
+  Purpose: Issues progress through: pending -> verified -> in_progress ->
+           resolved. Each status change is tracked and displayed.
+
+  Feature: Upvote Reports
+  Purpose: Community members can upvote reports to signal priority. Upvote
+           counts are displayed on each report card.
+
+  Feature: Comment on Reports
+  Purpose: Users can add comments to reports for discussion and updates.
+
+  Feature: Report Detail Modal
+  Purpose: Full view of a report including image, status timeline, comments,
+           upvote button, reference number, and share button.
+
+  Feature: Anonymous Reporting
+  Purpose: Community concerns can be submitted anonymously to protect the
+           reporter's identity.
+
+================================================================================
+4. MAP & SEARCH FEATURES
+================================================================================
+
+  Feature: Interactive Live Map
+  Purpose: Leaflet-based map centered on Lucena City, Quezon with color-coded
+           markers (gray=pending, blue=verified, orange=in-progress,
+           green=resolved). Click markers for popup details.
+
+  Feature: Status Filter on Map
+  Purpose: Toggle markers by status using filter buttons above the map.
+
+  Feature: Search Reports
+  Purpose: Search reports by title, location, or category with a clearable
+           search input field.
+
+  Feature: Status Filter Tabs
+  Purpose: Filter the report grid by All, Pending, Verified, In Progress,
+           or Resolved.
+
+================================================================================
+5. ADMIN PANEL (10 Pages)
+================================================================================
+
+  Feature: Admin Dashboard (/admin/dashboard)
+  Purpose: Overview with stat cards (total, pending, in-progress, resolved),
+           recent reports list, and complaints per purok breakdown.
+
+  Feature: Admin Reports (/admin/reports)
+  Purpose: Full report management grid with status badges, filtering, and
+           Export PDF button to download all reports as a formatted PDF.
+
+  Feature: Admin Verification (/admin/verification)
+  Purpose: Review and approve/reject pending reports with details view.
+
+  Feature: Admin Emergencies (/admin/emergencies)
+  Purpose: Emergency response dashboard with acknowledge/resolve actions and
+           WebSocket live updates.
+
+  Feature: Admin Worker Assignment (/admin/worker-assignment)
+  Purpose: View maintenance teams and active assignments. Track which team
+           is working on which infrastructure issue.
+
+  Feature: Admin Analytics (/admin/analytics)
+  Purpose: Per-purok breakdown with density heatmap, resolution rates, and
+           category distribution.
+
+  Feature: Admin Feedback (/admin/feedback)
+  Purpose: View and manage resident comments with search, filtering by type
+           (anonymous, with thread), and reply/view thread actions.
+
+  Feature: Admin History (/admin/history)
+  Purpose: Archived resolved records with search, date filters, and category
+           filters. Shows days-to-fix metrics.
+
+  Feature: Admin Users (/admin/users)
+  Purpose: User management table with role badges, real-time WebSocket
+           updates, and invite user functionality.
+
+  Feature: Admin Settings (/admin/settings)
+  Purpose: Configure barangay profile (name, captain, hotline, puroks) and
+           toggle notification/verification settings.
+
+================================================================================
+6. PDF REPORT GENERATION
+================================================================================
+
+  Feature: Export Reports as PDF (/api/export/pdf/)
+  Purpose: Generate a formatted PDF containing all infrastructure issues and
+           community concerns with summary stats (total, pending, verified,
+           in-progress, resolved) and a detailed table (ref, type, title,
+           category, status, purok, date, reporter).
+
+================================================================================
+7. REAL-TIME WEBSOCKET UPDATES
+================================================================================
+
+  Feature: Live Issue Updates (ws://host:8000/ws/issues/)
+  Purpose: Real-time push of new/updated/deleted reports to all connected
+           clients. Auto-refreshes the reports page when changes occur.
+
+  Feature: Live User Updates (ws://host:8000/ws/users/)
+  Purpose: Real-time push of user changes to the admin users page. Auto-
+           updates the user table without page refresh.
+
+  Feature: WebSocket Signal Handlers
+  Purpose: Django post_save/post_delete signals on all report models broadcast
+           events to connected WebSocket groups.
+
+================================================================================
+8. BACKEND API ENDPOINTS
+================================================================================
+
+  Endpoint: POST /api/auth/register/
+  Purpose: Register a new resident account.
+
+  Endpoint: POST /api/auth/login/
+  Purpose: Authenticate and receive JWT access + refresh tokens.
+
+  Endpoint: POST /api/auth/refresh/
+  Purpose: Refresh an expired access token using a valid refresh token.
+
+  Endpoint: POST /api/auth/logout/
+  Purpose: Blacklist the refresh token to end a session.
+
+  Endpoint: GET /api/auth/me/
+  Purpose: Return the authenticated user's profile data.
+
+  Endpoint: /api/users/ (GET, POST, PATCH, DELETE)
+  Purpose: Full CRUD for user accounts (admin-only write).
+
+  Endpoint: /api/puroks/ (GET, POST, PATCH, DELETE)
+  Purpose: Manage purok records with aggregated issue counts.
+
+  Endpoint: /api/infrastructure-issues/ (GET, POST, PATCH, DELETE)
+  Purpose: Full CRUD with filtering by status/category/purok, search, ordering.
+
+  Endpoint: /api/community-concerns/ (GET, POST, PATCH, DELETE)
+  Purpose: Full CRUD with filtering, search, ordering, anonymous support.
+
+  Endpoint: /api/upvotes/ (GET, POST, DELETE)
+  Purpose: Create and remove upvotes on reports (authenticated).
+
+  Endpoint: /api/assignments/ (GET, POST, PATCH, DELETE)
+  Purpose: Assign workers to infrastructure issues.
+
+  Endpoint: /api/comments/ (GET, POST, PATCH, DELETE)
+  Purpose: Add and manage comments on reports.
+
+  Endpoint: /api/emergency-alerts/ (GET, POST, PATCH, DELETE)
+  Purpose: Submit and manage emergency alerts (authenticated).
+
+  Endpoint: GET /api/dashboard/summary/
+  Purpose: Return aggregate counts (infrastructure total, concerns total,
+           pending, resolved, emergency).
+
+  Endpoint: GET /api/export/pdf/
+  Purpose: Download all reports as a formatted PDF document.
+
+================================================================================
+9. FRONTEND COMPONENTS
+================================================================================
+
+  Navbar — Sticky top navigation with logo, links (Home, Report, Emergency,
+            About), and auth buttons or user profile dropdown with logout.
+
+  Footer — Site footer with branding, platform/support links, copyright.
+
+  Admin Sidebar — Left navigation for all admin pages grouped by category
+                  (Overview, Operations, Insights, Administration).
+
+  Admin TopBar — Top bar with search, notifications, user profile dropdown.
+
+  ReportModal (Home) — Issue submission modal with category, location,
+                       description, and drag-and-drop photo upload.
+
+  AddReportModal (Reports) — Report creation modal with purok dropdown and
+                             full form connected to API.
+
+  ReportDetailModal — Full report detail view with status timeline, comments,
+                      upvotes, and sharing.
+
+================================================================================
+10. DATA MODELS (Backend - Django)
+================================================================================
+
+  User (accounts.User) — Extends AbstractUser with role, purok, phone_number
+
+  Purok — Name, zone_code (e.g., Purok 1-7)
+
+  InfrastructureIssue — Category (pothole/streetlight/drainage/garbage/
+                         flooding/other), image, all base issue fields
+
+  CommunityConcern — Category (noise/disturbance/safety/other), anonymous flag
+
+  IssueUpvote — User + issue/concern (unique constraint prevents duplicates)
+
+  WorkerAssignment — Issue, assignee, notes, due date
+
+  IssueComment — Author, issue/concern, body
+
+  EmergencyAlert — Reporter, title, description, lat/lng, contact, acknowledged
+
+================================================================================
+11. CORE CONFIGURATION
+================================================================================
+
+  Database: SQLite (db.sqlite3) — pre-migrated with sample data
+
+  CORS: Configured for localhost:3000, 127.0.0.1:3000, 192.168.0.23:3000
+
+  JWT: 30-minute access tokens, 7-day refresh tokens with rotation + blacklist
+
+  WebSocket: Django Channels with InMemoryChannelLayer via Daphne ASGI server
+
+  Media: Uploads stored in /media/issues/, served in DEBUG mode
+
+  Timezone: Asia/Manila
+
+================================================================================
+12. TECH STACK SUMMARY
+================================================================================
+
+  Frontend: React 19, React Router DOM 7, Axios, Leaflet/React-Leaflet,
+            Tailwind CSS 3, Lucide React icons, PostCSS/Autoprefixer
+
+  Backend:  Django 5, Django REST Framework, Channels, Daphne, SimpleJWT,
+            django-filter, django-cors-headers, reportlab (PDF)
+
+  Database: SQLite
+
+  Dev Servers: npm start (port 3000) + python manage.py runserver (port 8000)
+
+================================================================================
+  End of Feature List
+================================================================================

@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { AlertTriangle, Phone, MapPin } from "lucide-react"; // Removed unused AdminLayout import
+import { AlertTriangle, Phone, MapPin } from "lucide-react";
 import api, { WS_BASE_URL } from "../../services/api";
 
 const Emergencies = () => {
   const [issues, setIssues] = useState([]);
 
+  const loadEmergencies = () => api.get("/emergency-alerts/")
+    .then(res => setIssues(res.data))
+    .catch(err => console.log(err));
+
   useEffect(() => {
-    const loadEmergencies = () => api.get("/emergency-alerts/")
-      .then(res => setIssues(res.data))
-      .catch(err => console.log(err));
     loadEmergencies();
     const socket = new WebSocket(`${WS_BASE_URL}/ws/issues/`);
     socket.onmessage = (event) => {
@@ -17,6 +18,25 @@ const Emergencies = () => {
     };
     return () => socket.close();
   }, []);
+
+  const handleAcknowledge = async (id) => {
+    try {
+      await api.patch(`/emergency-alerts/${id}/`, { acknowledged: true });
+      loadEmergencies();
+    } catch (err) {
+      alert("Could not acknowledge. " + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const handleResolve = async (id) => {
+    if (!window.confirm("Mark this emergency as resolved?")) return;
+    try {
+      await api.delete(`/emergency-alerts/${id}/`);
+      loadEmergencies();
+    } catch (err) {
+      alert("Could not resolve. " + (err.response?.data?.detail || err.message));
+    }
+  };
 
   return (
     <div>
@@ -52,7 +72,7 @@ const Emergencies = () => {
                     {item.acknowledged ? "ACKNOWLEDGED" : "NEW"}
                   </span>
                   <span className="text-xs font-mono text-gray-500">
-                    #{item.reference_number || "EM-000"}
+                    #{`EM-${String(item.id).padStart(3, '0')}`}
                   </span>
                 </div>
 
@@ -60,6 +80,9 @@ const Emergencies = () => {
                 <h2 className="text-lg font-semibold text-[#1e3a5f] mt-2">
                   {item.title}
                 </h2>
+
+                {/* DESCRIPTION */}
+                <p className="text-sm text-gray-600 mt-1 line-clamp-2">{item.description}</p>
 
                 {/* LOCATION */}
                 <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
@@ -75,10 +98,18 @@ const Emergencies = () => {
 
                 {/* BUTTONS */}
                 <div className="flex gap-2 mt-4">
-                  <button className="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs py-2 rounded-lg transition-colors">
-                    Acknowledge
-                  </button>
-                  <button className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs py-2 rounded-lg transition-colors">
+                  {!item.acknowledged && (
+                    <button
+                      onClick={() => handleAcknowledge(item.id)}
+                      className="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs py-2 rounded-lg transition-colors"
+                    >
+                      Acknowledge
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleResolve(item.id)}
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs py-2 rounded-lg transition-colors"
+                  >
                     Mark Resolved
                   </button>
                 </div>

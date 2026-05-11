@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     Search, Bell, LayoutDashboard, FileText, ShieldCheck, Siren,
-    Users, BarChart3, MessageSquare, History, Settings, Building2
+    Users, BarChart3, MessageSquare, History, Settings, Building2, Map, LogOut, ChevronDown
 } from 'lucide-react';
-import { NavLink, Outlet } from "react-router-dom";
-import { tokenStore } from '../../../services/api';
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { tokenStore, authApi } from '../../../services/api';
 
 /* ─────────────────────────────────────────
    SIDEBAR
@@ -156,6 +156,18 @@ const Sidebar = () => {
                         </NavLink>
 
                         <NavLink
+                            to="/admin/puroks"
+                            className={({ isActive }) =>
+                                `flex items-center gap-3 px-3 py-2 rounded-xl transition ${
+                                isActive ? "bg-[#f97316] text-white" : "hover:bg-white/10"
+                                }`
+                            }
+                        >
+                            <Map className="w-4 h-4" />
+                            Purok Management
+                        </NavLink>
+
+                        <NavLink
                             to="/admin/settings"
                             className={({ isActive }) =>
                                 `flex items-center gap-3 px-3 py-2 rounded-xl transition ${
@@ -179,6 +191,33 @@ const Sidebar = () => {
 ───────────────────────────────────────── */
 const TopBar = () => {
     const user = tokenStore.getUser();
+    const navigate = useNavigate();
+    const [showDropdown, setShowDropdown] = useState(false);
+    const dropdownRef = useRef(null);
+
+    useEffect(() => {
+        const handleClick = (e) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                setShowDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, []);
+
+    const handleLogout = async () => {
+        const refresh = tokenStore.getRefresh();
+        try {
+            if (refresh) await authApi.logout(refresh);
+        } catch { /* ignore */ }
+        tokenStore.clear();
+        navigate('/');
+    };
+
+    const initials = user
+        ? `${(user.first_name || '')[0] || ''}${(user.last_name || '')[0] || ''}`.toUpperCase() || user.username?.[0]?.toUpperCase() || 'A'
+        : 'A';
+
     return (
         <div className="flex justify-between items-center px-6 py-4 bg-[#f4f7fb] border-b">
 
@@ -195,12 +234,31 @@ const TopBar = () => {
                     <Bell className="w-5 h-5" />
                 </button>
 
-                <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border">
-                    <div className="w-10 h-10 bg-[#1e3a5f] rounded-full"></div>
-                    <div>
-                        <p className="text-sm font-semibold">{user?.username || 'Admin User'}</p>
-                        <p className="text-xs text-gray-500">{user?.role || 'Administrator'}</p>
-                    </div>
+                <div className="relative" ref={dropdownRef}>
+                    <button
+                        onClick={() => setShowDropdown(!showDropdown)}
+                        className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border hover:bg-gray-50 transition-colors"
+                    >
+                        <div className="w-10 h-10 bg-[#1e3a5f] rounded-full flex items-center justify-center">
+                            <span className="text-white text-sm font-bold">{initials}</span>
+                        </div>
+                        <div className="text-left">
+                            <p className="text-sm font-semibold">{user?.username || 'Admin User'}</p>
+                            <p className="text-xs text-gray-500">{user?.role || 'Administrator'}</p>
+                        </div>
+                        <ChevronDown className="w-4 h-4 text-gray-400" />
+                    </button>
+                    {showDropdown && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-50">
+                            <button
+                                onClick={handleLogout}
+                                className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                            >
+                                <LogOut className="w-4 h-4" />
+                                Logout
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 

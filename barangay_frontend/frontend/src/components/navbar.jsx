@@ -1,14 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, LogOut, ChevronDown } from 'lucide-react';
+import { tokenStore, authApi } from '../services/api';
 
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const isActive = (path) => location.pathname === path;
-  
-  // 🔐 TODO: Replace with your actual authentication state/context later
-  const [isLoggedIn, setIsLoggedIn] = useState(false); 
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const u = tokenStore.getUser();
+    const t = tokenStore.getAccess();
+    if (u && t) {
+      setUser(u);
+      setIsLoggedIn(true);
+    }
+  }, [location]);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const handleLogout = async () => {
+    const refresh = tokenStore.getRefresh();
+    try {
+      if (refresh) await authApi.logout(refresh);
+    } catch { /* ignore */ }
+    tokenStore.clear();
+    setUser(null);
+    setIsLoggedIn(false);
+    setShowDropdown(false);
+    navigate('/');
+  };
+
+  const initials = user
+    ? `${(user.first_name || '')[0] || ''}${(user.last_name || '')[0] || ''}`.toUpperCase() || user.username?.[0]?.toUpperCase() || 'U'
+    : 'U';
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
@@ -68,18 +105,39 @@ const Navbar = () => {
             </Link>
           </div>
 
-          {/* 🔐 Auth Buttons OR User Profile */}
+          {/* Auth Buttons OR User Profile */}
           <div className="flex items-center gap-3">
             {isLoggedIn ? (
-              /* ✅ LOGGED IN: Show Profile */
-              <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-full px-4 py-2 hover:bg-gray-100 transition-colors cursor-pointer">
-                <div className="w-8 h-8 bg-[#1e3a5f] rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">MS</span>
-                </div>
-                <span className="text-sm font-medium text-gray-700 hidden sm:block">Maria S.</span>
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-4 py-2 hover:bg-gray-100 transition-colors"
+                >
+                  <div className="w-8 h-8 bg-[#1e3a5f] rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">{initials}</span>
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 hidden sm:block max-w-[100px] truncate">
+                    {user?.first_name || user?.username || 'User'}
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-gray-400 hidden sm:block" />
+                </button>
+                {showDropdown && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-50">
+                    <div className="px-4 py-2 border-b border-gray-100">
+                      <p className="text-sm font-medium text-gray-900 truncate">{user?.username || 'User'}</p>
+                      <p className="text-xs text-gray-500 capitalize">{user?.role || 'resident'}</p>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
-              /* ❌ NOT LOGGED IN: Show Login & Get Started */
               <>
                 <Link 
                   to="/login"
