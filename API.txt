@@ -1,6 +1,5 @@
 THIS IS HOW THE BACKEND SHOULD BE TESTED WITH POSTMAN OR frontend
 
-
 1) Users
 api endpoint
 GET /api/users/

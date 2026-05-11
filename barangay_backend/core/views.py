@@ -30,7 +30,9 @@ def _can_assign(user):
 
 
 def _is_admin_user(user):
-    return user.is_authenticated and (user.is_superuser or getattr(user, "role", "") == "admin")
+    return user.is_authenticated and (
+        user.is_staff or user.is_superuser or getattr(user, "role", "") == "admin"
+    )
 
 
 def dashboard(request):

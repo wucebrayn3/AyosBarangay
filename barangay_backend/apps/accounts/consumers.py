@@ -8,7 +8,7 @@ class LiveUsersConsumer(AsyncJsonWebsocketConsumer):
             await self.close(code=4401)
             return
 
-        if not (user.is_superuser or getattr(user, "role", "") == "admin"):
+        if not (user.is_staff or user.is_superuser or getattr(user, "role", "") == "admin"):
             await self.close(code=4403)
             return
 
