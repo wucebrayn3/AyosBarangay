@@ -6,7 +6,7 @@ import {
   ArrowUp, Send, User
 } from 'lucide-react';
 import L from 'leaflet';
-import { lucenaBarangays, lucenaStreets, purokList } from '../data/lucenaData';
+import { lucenaBarangays, lucenaStreetsByBarangay } from '../data/lucenaData';
 import api, {
   WS_BASE_URL,
   apiCategoryToLabel,
@@ -71,16 +71,14 @@ const purokLocations = {
 };
 
 // --- Add Report Modal ---
-const AddReportModal = ({ isOpen, onClose, onSubmit, puroks }) => {
+const AddReportModal = ({ isOpen, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
     category: '',
     location: '',
-    purok: '',
     description: '',
     photo: null,
     barangay: '',
     street: '',
-    selectedPurok: '',
   });
   const [preview, setPreview] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -98,10 +96,10 @@ const AddReportModal = ({ isOpen, onClose, onSubmit, puroks }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const combinedLocation = [formData.selectedPurok, formData.street, formData.barangay].filter(Boolean).join(", ");
+    const combinedLocation = [formData.street, formData.barangay].filter(Boolean).join(", ");
     onSubmit({ ...formData, location: combinedLocation || formData.location });
     onClose();
-    setFormData({ category: '', location: '', purok: '', description: '', photo: null, barangay: '', street: '', selectedPurok: '' });
+    setFormData({ category: '', location: '', description: '', photo: null, barangay: '', street: '' });
     setPreview(null);
   };
 
@@ -137,39 +135,23 @@ const AddReportModal = ({ isOpen, onClose, onSubmit, puroks }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Purok <span className="text-red-500">*</span></label>
-            <select required value={formData.purok} onChange={(e) => setFormData({...formData, purok: e.target.value})}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f97316]">
-              <option value="">Select your purok</option>
-              {puroks.length > 0
-                ? puroks.map(p => <option key={p.id} value={p.id}>{p.name}</option>)
-                : Object.keys(purokLocations).map(p => <option key={p} value={p}>{p}</option>)}
-            </select>
-          </div>
-
-          <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Location <span className="text-red-500">*</span></label>
             <div className="space-y-3">
               <div className="relative">
                 <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <select required value={formData.barangay} onChange={(e) => setFormData({...formData, barangay: e.target.value})}
+                <select required value={formData.barangay} onChange={(e) => setFormData({...formData, barangay: e.target.value, street: ''})}
                   className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f97316] bg-white appearance-none">
                   <option value="">Select barangay (Lucena City)</option>
                   {lucenaBarangays.map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <select value={formData.selectedPurok} onChange={(e) => setFormData({...formData, selectedPurok: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f97316] bg-white appearance-none">
-                  <option value="">Purok (optional)</option>
-                  {purokList.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-                <select value={formData.street} onChange={(e) => setFormData({...formData, street: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f97316] bg-white appearance-none">
-                  <option value="">Street (optional)</option>
-                  {lucenaStreets.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
+              <select value={formData.street} onChange={(e) => setFormData({...formData, street: e.target.value})}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f97316] bg-white appearance-none">
+                <option value="">
+                  {formData.barangay ? 'Select street (optional)' : 'Select a barangay first'}
+                </option>
+                {(formData.barangay ? lucenaStreetsByBarangay[formData.barangay] || [] : []).map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
             </div>
           </div>
 
@@ -585,7 +567,6 @@ const Report = () => {
     payload.append('description', formData.description);
     payload.append('category', category);
     payload.append('status', 'pending');
-    payload.append('purok', formData.purok);
     payload.append('address_text', formData.location);
     payload.append('is_verified', 'false');
     payload.append('is_public', 'true');
@@ -668,7 +649,10 @@ const Report = () => {
             <div className="relative h-96 w-full">
               <MapContainer center={LUCENA_CENTER} zoom={14} style={{ height: '100%', width: '100%', zIndex: 1 }} className="rounded-b-xl">
                 <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                {mapMarkers.filter(m => selectedStatus === 'all' || reports.find(r => r.id === m.reportId)?.status === selectedStatus).map((marker) => (
+                {mapMarkers.filter(m => {
+                  const r = reports.find(r => r.id === m.reportId);
+                  return selectedStatus === 'all' ? r?.status !== 'resolved' : r?.status === selectedStatus;
+                }).map((marker) => (
                   <Marker key={marker.id} position={marker.position} icon={createCustomIcon(marker.status)} eventHandlers={{ click: () => {
                     const report = reports.find(r => r.id === marker.reportId);
                     if (report) setSelectedReport(report);
@@ -755,7 +739,7 @@ const Report = () => {
       </div>
 
       {/* Modals */}
-      <AddReportModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSubmit={handleAddReport} puroks={puroks} />
+      <AddReportModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSubmit={handleAddReport} />
       <ReportDetailModal report={selectedReport} isOpen={!!selectedReport} onClose={() => setSelectedReport(null)} onUpvote={handleUpvote} onComment={handleComment} />
     </div>
   );

@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api, { labelToApiCategory, infrastructureCategories } from '../services/api';
-import { lucenaBarangays, lucenaStreets, purokList } from '../data/lucenaData';
+import { lucenaBarangays, lucenaStreetsByBarangay } from '../data/lucenaData';
 
 // --- Report Modal Component ---
 const ReportModal = ({ isOpen, onClose }) => {
@@ -18,7 +18,6 @@ const ReportModal = ({ isOpen, onClose }) => {
     photo: null,
     barangay: '',
     street: '',
-    purok: '',
   });
   const [preview, setPreview] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -43,7 +42,7 @@ const ReportModal = ({ isOpen, onClose }) => {
       const endpoint = infrastructureCategories.has(category) && category !== 'noise'
         ? '/infrastructure-issues/'
         : '/community-concerns/';
-      const combinedLocation = [formData.purok, formData.street, formData.barangay].filter(Boolean).join(", ");
+      const combinedLocation = [formData.street, formData.barangay].filter(Boolean).join(", ");
       const payload = new FormData();
       payload.append('title', combinedLocation || formData.location);
       payload.append('description', formData.description);
@@ -56,7 +55,7 @@ const ReportModal = ({ isOpen, onClose }) => {
       if (formData.photo) payload.append('image', formData.photo);
       await api.post(endpoint, payload);
       onClose();
-      setFormData({ category: '', location: '', description: '', photo: null, barangay: '', street: '', purok: '' });
+      setFormData({ category: '', location: '', description: '', photo: null, barangay: '', street: '' });
       setPreview(null);
     } catch (err) {
       alert(err.response?.status === 401 ? 'Please log in before submitting a report.' : 'Could not submit report.');
@@ -121,24 +120,19 @@ const ReportModal = ({ isOpen, onClose }) => {
             <div className="space-y-3">
               <div className="relative">
                 <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <select required value={formData.barangay} onChange={(e) => setFormData({...formData, barangay: e.target.value})}
+                <select required value={formData.barangay} onChange={(e) => setFormData({...formData, barangay: e.target.value, street: ''})}
                   className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f97316] focus:border-transparent bg-white appearance-none">
                   <option value="">Select barangay (Lucena City)</option>
                   {lucenaBarangays.map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <select value={formData.purok} onChange={(e) => setFormData({...formData, purok: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f97316] bg-white appearance-none">
-                  <option value="">Purok (optional)</option>
-                  {purokList.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-                <select value={formData.street} onChange={(e) => setFormData({...formData, street: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f97316] bg-white appearance-none">
-                  <option value="">Street (optional)</option>
-                  {lucenaStreets.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
+              <select value={formData.street} onChange={(e) => setFormData({...formData, street: e.target.value})}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f97316] bg-white appearance-none">
+                <option value="">
+                  {formData.barangay ? 'Select street (optional)' : 'Select a barangay first'}
+                </option>
+                {(formData.barangay ? lucenaStreetsByBarangay[formData.barangay] || [] : []).map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
             </div>
           </div>
 

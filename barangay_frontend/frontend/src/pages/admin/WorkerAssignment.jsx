@@ -14,7 +14,7 @@ const WorkerAssignment = () => {
   useEffect(() => {
     Promise.all([
       api.get("/infrastructure-issues/"),
-      api.get("/worker-assignments/"),
+      api.get("/assignments/"),
       api.get("/users/"),
     ])
       .then(([issueRes, assignRes, usersRes]) => {
@@ -51,10 +51,10 @@ const WorkerAssignment = () => {
     };
     try {
       if (existing) {
-        const res = await api.patch(`/worker-assignments/${existing.id}/`, payload);
+        const res = await api.patch(`/assignments/${existing.id}/`, payload);
         setAssignments(prev => prev.map(a => a.id === existing.id ? res.data : a));
       } else {
-        const res = await api.post("/worker-assignments/", payload);
+        const res = await api.post("/assignments/", payload);
         setAssignments(prev => [...prev, res.data]);
       }
       cancelEdit();

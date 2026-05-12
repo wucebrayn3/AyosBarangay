@@ -15,7 +15,7 @@ const Verification = () => {
       const all = [
         ...infraRes.data.map(i => ({ ...i, _type: "infrastructure" })),
         ...concernRes.data.map(i => ({ ...i, _type: "concern" })),
-      ].filter(i => i.status !== "resolved" && i.status !== "verified");
+      ].filter(i => i.status === "pending");
       setItems(all);
     }).catch(err => console.log(err));
   };

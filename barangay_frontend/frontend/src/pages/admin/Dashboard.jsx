@@ -17,8 +17,8 @@ const Dashboard = () => {
         .then(([summaryRes, infraRes, concernRes, purokRes]) => {
             setSummary(summaryRes.data);
             setRecent([
-                ...infraRes.data.map((item) => ({ ...item, type: "Infrastructure" })),
-                ...concernRes.data.map((item) => ({ ...item, type: "Concern" })),
+                ...infraRes.data.filter(i => i.status !== "resolved").map((item) => ({ ...item, type: "Infrastructure" })),
+                ...concernRes.data.filter(i => i.status !== "resolved").map((item) => ({ ...item, type: "Concern" })),
             ].slice(0, 6));
             setPuroks(purokRes.data);
         })

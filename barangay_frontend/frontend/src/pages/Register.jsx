@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, User, MapPin, Loader2 } from 'lucide-react';
 import { authApi, tokenStore } from '../services/api';
+import { lucenaBarangays } from '../data/lucenaData';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -59,10 +60,7 @@ const Register = () => {
     }
   };
 
-  const purokOptions = [
-    'Purok 1', 'Purok 2', 'Purok 3', 'Purok 4', 
-    'Purok 5', 'Purok 6', 'Purok 7'
-  ];
+  const purokOptions = lucenaBarangays;
 
   return (
     <div className="min-h-screen bg-[#faf8f5] flex items-center justify-center px-4 py-12">
@@ -133,10 +131,10 @@ const Register = () => {
               </div>
             </div>
 
-            {/* Purok Selection */}
+            {/* Barangay Selection */}
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                Purok
+                Barangay
               </label>
               <div className="relative">
                 <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -147,9 +145,9 @@ const Register = () => {
                   required
                   className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f97316] focus:border-transparent transition-all text-gray-700 appearance-none cursor-pointer"
                 >
-                  <option value="" disabled>Select your purok</option>
-                  {purokOptions.map((purok) => (
-                    <option key={purok} value={purok}>{purok}</option>
+                  <option value="" disabled>Select your barangay</option>
+                  {purokOptions.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
                   ))}
                 </select>
                 <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">

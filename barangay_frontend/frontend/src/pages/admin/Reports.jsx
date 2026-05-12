@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Filter, Download, MapPin, Calendar, MessageSquare, ArrowUp } from 'lucide-react';
+import { Filter, Download, MapPin, Calendar, MessageSquare, ArrowUp, Check, X } from 'lucide-react';
 import api, { apiCategoryToLabel, statusToFrontend, API_BASE_URL, tokenStore } from '../../services/api';
+
+const TEAMS = ["Team Alpha", "Team Bravo", "Team Charlie"];
 
 const Reports = () => {
 
     const [reports, setReports] = useState([]);
     const [filterTab, setFilterTab] = useState("All");
+    const [assigningId, setAssigningId] = useState(null);
+    const [selectedTeam, setSelectedTeam] = useState("");
 
     useEffect(() => {
         Promise.all([
@@ -42,12 +46,23 @@ const Reports = () => {
     };
 
     const handleAssign = async (id) => {
-        const purok = prompt('Enter purok name for assignment (e.g., Purok 3):');
-        if (!purok) return;
+        if (!selectedTeam) return;
+        const tokenData = tokenStore.getUser();
         try {
             await api.patch(`/infrastructure-issues/${id}/`, { status: 'in_progress' });
+            const existing = await api.get(`/assignments/?issue=${id}`);
+            if (existing.data.length > 0) {
+                await api.patch(`/assignments/${existing.data[0].id}/`, { team: selectedTeam });
+            } else {
+                await api.post('/assignments/', {
+                    issue: id,
+                    team: selectedTeam,
+                    assignee: tokenData?.id || 3,
+                });
+            }
             setReports(prev => prev.map(r => r.id === id ? { ...r, status: 'in_progress', displayStatus: 'in-progress' } : r));
-            alert(`Assigned to ${purok}`);
+            setAssigningId(null);
+            setSelectedTeam("");
         } catch (err) {
             alert('Could not assign. ' + (err.response?.data?.detail || err.message));
         }
@@ -146,13 +161,25 @@ const Reports = () => {
 
                             <div className="flex gap-2 mt-3">
                                 <button className="flex-1 bg-[#1e3a5f] text-white text-xs py-2 rounded-lg">{r.type}</button>
-                                {r.status !== 'resolved' && (
-                                    <button
-                                        onClick={() => handleAssign(r.id)}
-                                        className="flex-1 bg-orange-100 hover:bg-orange-200 text-orange-600 text-xs py-2 rounded-lg transition-colors"
-                                    >
-                                        Assign
-                                    </button>
+                                {r.status !== 'resolved' && r.type === 'Infrastructure' && (
+                                    assigningId === r.id ? (
+                                        <div className="flex gap-1 items-center">
+                                            <select value={selectedTeam} onChange={e => setSelectedTeam(e.target.value)}
+                                                className="flex-1 border border-orange-300 rounded-lg text-xs py-1.5 px-2 focus:outline-none focus:ring-1 focus:ring-orange-400">
+                                                <option value="">Team...</option>
+                                                {TEAMS.map(t => <option key={t} value={t}>{t}</option>)}
+                                            </select>
+                                            <button onClick={() => handleAssign(r.id)} disabled={!selectedTeam}
+                                                className="p-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-40"><Check className="w-3.5 h-3.5" /></button>
+                                            <button onClick={() => { setAssigningId(null); setSelectedTeam(""); }}
+                                                className="p-1.5 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300"><X className="w-3.5 h-3.5" /></button>
+                                        </div>
+                                    ) : (
+                                        <button onClick={() => { setAssigningId(r.id); setSelectedTeam(""); }}
+                                            className="flex-1 bg-orange-100 hover:bg-orange-200 text-orange-600 text-xs py-2 rounded-lg transition-colors">
+                                            Assign
+                                        </button>
+                                    )
                                 )}
                             </div>
 

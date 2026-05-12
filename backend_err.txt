@@ -19,3 +19,20 @@ C:\Users\Samuel\Documents\New project\barangay_backend\apps\reports\serializers.
 Watching for file changes with StatReloader
 C:\Users\Samuel\Documents\New project\barangay_backend\apps\reports\models.py changed, reloading.
 Watching for file changes with StatReloader
+C:\Users\Samuel\Documents\New project\barangay_backend\apps\reports\models.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\Samuel\Documents\New project\barangay_backend\core\urls.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\Samuel\Documents\New project\barangay_backend\config\asgi.py changed, reloading.
+Watching for file changes with StatReloader
+C:\Users\Samuel\Documents\New project\barangay_backend\apps\reports\models.py changed, reloading.
+Watching for file changes with StatReloader
+System check identified some issues:
+
+WARNINGS:
+reports.WorkerAssignment.issue: (fields.W342) Setting unique=True on a ForeignKey has the same effect as using a OneToOneField.
+	HINT: ForeignKey(unique=True) is usually better served by a OneToOneField.
+
+System check identified 1 issue (0 silenced).
+C:\Users\Samuel\Documents\New project\barangay_backend\apps\reports\models.py changed, reloading.
+Watching for file changes with StatReloader

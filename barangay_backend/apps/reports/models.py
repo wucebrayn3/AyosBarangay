@@ -88,7 +88,7 @@ class IssueUpvote(TimeStampedModel):
 
 
 class WorkerAssignment(TimeStampedModel):
-    issue = models.ForeignKey(InfrastructureIssue, on_delete=models.CASCADE, related_name="assignments")
+    issue = models.OneToOneField(InfrastructureIssue, on_delete=models.CASCADE, related_name="assignment")
     assignee = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="assigned_tasks")
     notes = models.TextField(blank=True)
     due_date = models.DateField(null=True, blank=True)
